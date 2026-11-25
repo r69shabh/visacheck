@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VisaCheck — Free Schengen visa file checker for India</title>
+  <meta name="description" content="Check a Schengen visa file from India for missing documents, booking gaps, insurance and the right consulate. Free checks; optional cover letter and itinerary PDFs.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="VisaCheck — Schengen visa file checker for India">
+  <meta property="og:description" content="Catch trip and paperwork inconsistencies before you submit. Free, private checks for Indian applicants.">
+  <meta name="theme-color" content="#153935">
+  <link rel="icon" href="/visacheck.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="module" src="/src/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <nav class="container nav" aria-label="Main">
+      <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">✓</span> VisaCheck</a>
+      <a class="nav-link" href="#checker">Open checker <span aria-hidden="true">↓</span></a>
+    </nav>
+    <div class="container hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> MADE FOR APPLICANTS IN INDIA</p>
+        <h1>Check your Schengen<br> visa file <em>before you apply.</em></h1>
+        <p class="hero-description">Catch booking gaps, insurance issues and missing paperwork before your appointment. The checks are free and your trip details stay in this browser.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#checker">Start your free check <span aria-hidden="true">→</span></a>
+          <button class="button ghost" id="sample" type="button">Load sample trip</button>
+        </div>
+      </div>
+      <div class="ticket" aria-label="What the checker looks at">
+        <div class="ticket-head"><span>FLIGHT PLAN / FILE REVIEW</span><span>01—04</span></div>
+        <div class="ticket-route"><div>IND <small>ORIGIN</small></div><span aria-hidden="true">✈</span><div>EUR <small>DESTINATION</small></div></div>
+        <ul><li>Passport &amp; consulate</li><li>Travel dates &amp; hotels</li><li>Medical insurance</li><li>Document checklist</li></ul>
+      </div>
+    </div>
+  </header>
+  <main class="container main" id="checker">
+    <div class="intro">
+      <div><p class="eyebrow">THE FREE FILE CHECK</p><h2>Put your trip together.</h2></div>
+      <p>For short-stay tourism, business and family visits. Not legal or visa advice; not affiliated with any embassy, VFS or the EU.</p>
+    </div>
+    <div class="workspace">
+      <form id="trip-form" novalidate>
+        <section class="card">
+          <div class="section-heading"><span>01</span><div><h3>Applicant &amp; passport</h3><p>Use the details on the passport you plan to travel with.</p></div></div>
+          <div id="applicant-fields" class="fields"></div>
+        </section>
+        <section class="card">
+          <div class="section-heading"><span>02</span><div><h3>Trip &amp; itinerary</h3><p>Use the local dates of your first Schengen entry and final exit. List each overnight stop.</p></div></div>
+          <div id="trip-fields" class="fields"></div>
+          <div class="subheading"><h4>Itinerary stops</h4><p>One row per stop. The next stop begins on the previous stop’s end date. Add a zero-night final stop if you change cities on exit day.</p></div>
+          <div id="segments"></div>
+          <button class="button small" type="button" data-add="segments">+ Add itinerary stop</button>
+          <div class="subheading"><h4>Recent Schengen stays</h4><p>Count short stays in the previous 179 days, not stays authorized under a residence permit or long-stay visa.</p></div>
+          <div id="history-fields" class="fields"></div>
+          <div id="previous"></div>
+          <button class="button small" type="button" data-add="previous">+ Add past stay</button>
+        </section>
+        <section class="card">
+          <div class="section-heading"><span>03</span><div><h3>Bookings &amp; insurance</h3><p>Compare your planned stays and flights to the evidence you’ll submit.</p></div></div>
+          <div id="flights-fields" class="fields"></div>
+          <div class="subheading"><h4>Accommodation</h4><p>Include each hotel or private host stay covering nights inside Schengen.</p></div>
+          <div id="hotels"></div>
+          <button class="button small" type="button" data-add="hotels">+ Add accommodation</button>
+          <div class="subheading"><h4>Travel medical insurance</h4><p>Use the coverage limit, not the premium. If using INR, enter the INR amount for €1 from the <a id="fx-source" target="_blank" rel="noopener">ECB reference table</a>; this is an estimate.</p></div>
+          <div id="insurance-fields" class="fields"></div>
+        </section>
+        <section class="card">
+          <div class="section-heading"><span>04</span><div><h3>Supporting documents</h3><p>Mark the documents you’ve already prepared. Always check your mission’s latest list.</p></div></div>
+          <div id="support-fields" class="fields"></div>
+          <div id="document-fields" class="document-fields"></div>
+        </section>
+        <div class="submit">
+          <button class="button primary" type="submit">Check my visa file <span aria-hidden="true">→</span></button>
+          <button class="button text-button" type="button" id="clear-trip">Clear trip data</button>
+        </div>
+        <p id="storage-status" class="fine" role="status"></p>
+      </form>
+      <aside class="side" aria-label="Results and PDF downloads">
+        <section class="card review" id="review" tabindex="-1">
+          <p class="eyebrow">FILE REVIEW</p>
+          <h3>Your results</h3>
+          <p class="fine">Not legal or visa advice; not affiliated with any embassy, VFS or the EU.</p>
+          <div id="review-body">
+            <p class="waiting"><strong>Ready when you are.</strong><br>Add your trip details and choose “Check my visa file” to see what needs attention.</p>
+          </div>
+        </section>
+        <section class="card upgrade">
+          <div class="upgrade-label"><p class="eyebrow">OPTIONAL PDF PACK</p><strong>₹499</strong></div>
+          <h3>Cover letter &amp;<br> day-by-day itinerary.</h3>
+          <p>Turn your details into two downloadable PDFs. Review, sign where needed, and keep a copy for your appointment.</p>
+          <div class="letter" aria-label="Free cover letter preview">
+            <span class="fine">FREE LETTER PREVIEW</span>
+            <p id="letter-preview">To the Visa Officer<br>Subject: Short-stay visa application</p>
+          </div>
+          <div id="locked">
+            <a class="button primary full" id="buy" target="_blank" rel="noopener">Buy PDF pack on Gumroad <span aria-hidden="true">↗</span></a>
+            <p id="unavailable" class="fine" hidden>Checkout isn’t available yet. The file checker is still free.</p>
+            <form id="unlock-form">
+              <label for="license">Already purchased? Enter your Gumroad license key</label>
+              <div class="unlock-input"><input id="license" type="password" required maxlength="200" autocomplete="off" spellcheck="false"><button class="button small" id="unlock" type="submit">Unlock</button></div>
+            </form>
+          </div>
+          <div id="unlocked" hidden>
+            <p class="unlocked-label">✓ PDF pack unlocked in this browser</p>
+            <button class="button primary full" id="cover-download" type="button">Download cover letter PDF</button>
+            <button class="button small full" id="itinerary-download" type="button">Download itinerary PDF</button>
+            <p class="fine">Use Latin spelling from your passport for names and places in the PDFs.</p>
+            <button class="button text-button" id="forget-license" type="button">Forget unlock on this device</button>
+          </div>
+          <p id="payment-status" class="fine" role="status"></p>
+        </section>
+      </aside>
+    </div>
+  </main>
+  <footer>
+    <div class="container footer">
+      <strong>VisaCheck</strong>
+      <p>Not legal or visa advice; not affiliated with any embassy, VFS or the EU.<br>Trip data is saved only in this browser. Checkout and license verification are handled by Gumroad.</p>
+      <a href="./terms.html">Terms &amp; privacy</a>
+    </div>
+  </footer>
+  <noscript><p class="container">Enable JavaScript to check your visa file in this browser.</p></noscript>
+</body>
+</html>
