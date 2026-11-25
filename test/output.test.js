@@ -38,7 +38,9 @@ test('PDFs include calculated consulate, individual trip days, and the disclaime
   const cover = pdfText(coverLetter(data, review));
   const itinerary = pdfText(itineraryPdf(data, review));
   assert.match(cover, /Consular Section - France/);
-  assert.match(cover, /Aarav Mehta.*A1234567/);
+  assert.match(cover, /Alex Reyes.*A1234567.*issued by Philippines/);
+  assert.match(cover, /Current residence: Dubai, United Arab Emirates/);
+  assert.doesNotMatch(cover, /India/);
   assert.match(itinerary, /Day 1 \| 2027-04-02 \| Paris, France/);
   assert.match(itinerary, /Day 5 \| 2027-04-06 \| Rome, Italy/);
   assert.match(itinerary, /Day 7 \| 2027-04-08 \| Rome, Italy/);

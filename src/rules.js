@@ -1,3 +1,5 @@
+import { countryName } from './countries.js';
+
 export const SCHENGEN = [
   'Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Czechia', 'Denmark', 'Estonia',
   'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Iceland', 'Italy',
@@ -13,7 +15,7 @@ export const SOURCES = {
   apply: ['European Commission application guide', ec + '/schengen-visas/applying-schengen-visa_en'],
   area: ['European Commission Schengen list', ec + '/schengen-area_en'],
   stay: ['EU short-stay calculator and guidance', ec + '/schengen-visas/short-stay-calculator_en'],
-  fx: ['ECB EUR–INR reference rate', 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/eurofxref-graph-inr.en.html'],
+  fx: ['ECB euro reference rates', 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html'],
   india: ['Official checklists for India (Swiss mission; example)', india],
 };
 
@@ -24,12 +26,20 @@ export const DOCUMENTS = [
   ['transport', 'Round-trip reservation and onward transport', 'Include bookings between destinations where requested.'],
   ['accommodation', 'Accommodation evidence', 'Collect bookings or the required private-host evidence.'],
   ['policy', 'Travel medical insurance certificate', 'Check the policy, not just the payment receipt.'],
-  ['bank', 'Recent bank statements (often 3 months; some ask for up to 6)', 'Confirm the period and any stamping or certification.'],
-  ['tax', 'Income-tax returns (some checklists request the last 3 years)', 'Check the number of years and alternatives for your circumstances.'],
+  ['bank', 'Recent bank statements', 'Confirm the period and any certification or translation your visa office requires.'],
+  ['tax', 'Income-tax returns (if requested)', 'Check the number of years and alternatives for your circumstances.'],
   ['leave', 'Leave approval, employer NOC, or equivalent (if applicable)', 'Students, retirees and self-employed applicants may need different evidence.'],
   ['letter', 'Signed cover letter / trip explanation', 'Confirm whether it is requested for your purpose and mission.'],
   ['invitation', 'Business or family invitation / host evidence', 'Check format, signatures, sponsor evidence and any originals required.', ['business', 'family']],
 ];
+
+export function documentRequirements({ purpose, residenceCountry }) {
+  return DOCUMENTS.filter((entry) => !entry[3] || entry[3].includes(purpose)).map(([key, label, detail]) => ({
+    key, label, detail: key === 'tax' && residenceCountry === 'IN'
+      ? 'Some checklists in India request income-tax returns (ITRs) for the last three years. Check your destination’s requirements.'
+      : detail,
+  }));
+}
 
 const DAY = 86_400_000;
 export function dateDay(value) {
@@ -115,6 +125,9 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
   if ([data.name, data.passport].some((value) => !clean(value))) {
     add('warning', 'Applicant details', 'Add your name and passport number as shown on your travel document.', psource);
   }
+  if (!data.passportCountry) {
+    add('warning', 'Passport country', 'Select your passport’s issuing country. Visa requirements can depend on your nationality.', SOURCES.apply);
+  }
   if (issue === null || expiry === null || !Number.isInteger(blank) || blank < 0 || !validTrip) {
     add('warning', 'Passport eligibility', 'Enter issue and expiry dates, number of blank pages and trip dates to complete this check.', psource);
   }
@@ -182,10 +195,11 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
   } else {
     add('warning', 'Destination consulate', 'Complete a continuous itinerary to determine the country responsible for your file.', code(5));
   }
-  const residence = [clean(data.city), clean(data.state)].filter(Boolean).join(', ');
-  add('warning', 'Indian filing jurisdiction', residence
-    ? `Confirm which ${consulate || 'destination-country'} mission or authorized visa centre serves ${residence}. Country eligibility does not determine the correct local centre.`
-    : 'Add your Indian city and state, and verify the filing centre with the destination’s mission.', code(6));
+  const residenceName = countryName(data.residenceCountry);
+  const residence = [clean(data.city), clean(data.state), residenceName].filter(Boolean).join(', ');
+  add('warning', 'Local filing jurisdiction', residenceName
+    ? `Normally, apply where you legally reside. Confirm which ${consulate || 'destination-country'} mission or authorized visa centre serves ${residence}.`
+    : 'Normally, apply where you legally reside. Confirm the correct filing office with your destination’s mission.', code(6));
 
   const hotels = (data.hotels ?? []).filter(usable).map((row) => ({ ...row, from: dateDay(row.from), to: dateDay(row.to) }));
   const incomplete = hotels.some((row) => !cityKey(row.city) || row.from === null || row.to === null || row.to <= row.from);
@@ -221,7 +235,7 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
     const arrive = dateDay(data.outDate);
     const depart = dateDay(data.returnDate);
     if ((data.outDate && arrive !== start) || (data.returnDate && depart !== end)) {
-      add('error', 'Flight date mismatch', 'First Schengen arrival and final Schengen departure should match your trip entry and exit dates, not the dates in India.', SOURCES.apply);
+      add('error', 'Flight date mismatch', 'Match the local dates of your first Schengen arrival and final departure, not the dates at your airport outside Schengen.', SOURCES.apply);
     } else if (arrive !== null && depart !== null && clean(data.outAirport) && clean(data.returnAirport)) {
       add('ok', 'Travel reservations', 'Entered arrival and departure dates match the trip.', SOURCES.apply);
     }
@@ -230,11 +244,11 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
   const ins = code(15);
   const amount = numeric(data.coverage);
   const fx = numeric(data.fx);
-  const inr = data.currency === 'INR';
-  const eur = inr ? amount / fx : amount;
+  const localCurrency = data.currency === 'LOCAL';
+  const eur = localCurrency ? amount / fx : amount;
   if (!(amount > 0) || !Number.isFinite(amount)) add('error', 'Insurance amount', 'Enter the medical coverage amount, not the premium.', ins);
-  else if (inr && (!(fx > 0) || !Number.isFinite(fx))) add('warning', 'Insurance conversion', 'Enter a recent INR per €1 reference rate or confirm the equivalent in EUR with the insurer.', SOURCES.fx);
-  else add(eur >= 30_000 ? 'ok' : 'error', 'Insurance amount', `${inr ? 'Estimated at ' : 'Entered: '}€${eur.toLocaleString('en-IE', { maximumFractionDigits: 2 })}.${inr ? ' Confirm the EUR equivalent on your certificate.' : ''} The minimum is €30,000 for emergency medical costs and repatriation.`, ins);
+  else if (localCurrency && (!(fx > 0) || !Number.isFinite(fx))) add('warning', 'Insurance conversion', 'Enter the number of policy currency units per €1, or confirm the equivalent in euros with the insurer.', SOURCES.fx);
+  else add(eur >= 30_000 ? 'ok' : 'error', 'Insurance amount', `${localCurrency ? 'Estimated at ' : 'Entered: '}€${eur.toLocaleString('en-IE', { maximumFractionDigits: 2 })}.${localCurrency ? ' Confirm the EUR equivalent on your certificate.' : ''} The minimum is €30,000 for emergency medical costs and repatriation.`, ins);
   const coverFrom = dateDay(data.insFrom);
   const coverTo = dateDay(data.insTo);
   if (coverFrom === null || coverTo === null || coverFrom > coverTo) add('error', 'Insurance dates', 'Enter valid policy start and end dates.', ins);
@@ -252,11 +266,10 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
   if (!data.purpose || !data.priorVisa) {
     add('warning', 'Trip purpose and prior visas', 'Confirm your purpose and previous Schengen visas so you can review the right supporting documents.', SOURCES.apply);
   }
-  const documents = DOCUMENTS.filter((entry) => !entry[3] || entry[3].includes(data.purpose))
-    .map(([key, label, detail]) => ({ key, label, detail, ready: Boolean(data.documents?.[key]) }));
+  const documents = documentRequirements(data).map((item) => ({ ...item, ready: Boolean(data.documents?.[item.key]) }));
   const missing = documents.filter((item) => !item.ready).length;
   add(missing ? 'warning' : 'ok', 'Document checklist', missing
     ? `${missing} items are unmarked. This is a starting point, not your mission’s final checklist.`
-    : 'All suggested items are marked ready. Verify requirements for your country, purpose and status.', SOURCES.india);
+    : 'All suggested items are marked ready. Verify requirements for your country, purpose and status.', data.residenceCountry === 'IN' ? SOURCES.india : SOURCES.apply);
   return { checks, documents, consulate, ordered, nights, validTrip };
 }

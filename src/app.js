@@ -1,4 +1,5 @@
-import { audit, dateDay, DOCUMENTS, isoDay, SCHENGEN, SOURCES } from './rules.js';
+import { audit, dateDay, DOCUMENTS, documentRequirements, isoDay, SCHENGEN, SOURCES } from './rules.js';
+import { COUNTRY_OPTIONS } from './countries.js';
 import { GUMROAD_PRODUCT_ID, GUMROAD_PRODUCT_URL } from './config.js';
 import { verifyLicense } from './payment.js';
 
@@ -6,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 const form = $('trip-form');
 const draftKey = 'visacheck-trip-v1';
 const unlockKey = 'visacheck-unlock-' + GUMROAD_PRODUCT_ID;
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', dateStyle: 'short' }).format(new Date());
+const today = () => new Intl.DateTimeFormat('en-CA', { dateStyle: 'short' }).format(new Date());
 const countryOptions = [...SCHENGEN.map((name) => [name, name]), ['Other / non-Schengen', 'Other / non-Schengen']];
 const consulateOptions = SCHENGEN.map((name) => [name, name]);
 const yesNo = [['yes', 'Yes'], ['no', 'No']];
@@ -14,12 +15,14 @@ const purposes = [['tourism', 'Tourism'], ['business', 'Business'], ['family', '
 const groups = {
   applicant: [
     ['name', 'Full name (Latin spelling)', 'text', 'Name on your passport'],
-    ['passport', 'Indian passport number', 'text', 'e.g. A1234567'],
+    ['passport', 'Passport number', 'text'],
+    ['passportCountry', 'Passport issuing country', COUNTRY_OPTIONS],
     ['passportIssue', 'Passport issue date', 'date'],
     ['passportExpiry', 'Passport expiry date', 'date'],
     ['blank', 'Number of blank passport pages', 'number', 'e.g. 2'],
-    ['city', 'City of residence in India', 'text', 'e.g. Pune'],
-    ['state', 'State / union territory', 'text', 'e.g. Maharashtra'],
+    ['residenceCountry', 'Country of legal residence', COUNTRY_OPTIONS],
+    ['city', 'City of residence', 'text'],
+    ['state', 'State / province / region (if applicable)', 'text'],
   ],
   trip: [
     ['purpose', 'Main purpose', purposes],
@@ -39,8 +42,8 @@ const groups = {
   ],
   insurance: [
     ['coverage', 'Medical coverage limit', 'number', 'e.g. 30000'],
-    ['currency', 'Coverage currency', [['EUR', 'EUR (€)'], ['INR', 'INR (₹)']]],
-    ['fx', 'INR per €1 (for INR only)', 'number', 'Current published rate'],
+    ['currency', 'Coverage currency', [['EUR', 'EUR (€)'], ['LOCAL', 'Other currency']]],
+    ['fx', 'Units of your currency per €1', 'number', 'Current exchange rate'],
     ['insFrom', 'First day covered', 'date'],
     ['insTo', 'Last day covered', 'date'],
     ['wide', 'Covers all Schengen countries?', yesNo],
@@ -88,7 +91,7 @@ function field([key, label, type, hint], value = '', isRow = false) {
       input.spellcheck = false;
     }
   }
-  if (key === 'currency' && !value) value = 'EUR';
+  if (key === 'currency') value = !value || value === 'EUR' ? 'EUR' : 'LOCAL';
   if (key === 'application') input.setAttribute('aria-label', 'Planned filing date (defaults to today if blank)');
   if (key === 'fx') wrapper.hidden = true;
   input.value = value;
@@ -135,13 +138,12 @@ function fill(data = {}, defaultRows = false) {
     const rows = Array.isArray(data[kind]) ? data[kind] : [];
     (defaultRows && kind !== 'previous' && !rows.length ? [{}] : rows).forEach((row) => addRow(kind, row));
   }
-  $('document-fields').replaceChildren(...DOCUMENTS.map(([key, label, note, applicable]) => {
+  $('document-fields').replaceChildren(...DOCUMENTS.map(([key, label, note]) => {
     const wrapper = el('label', 'document');
     const checkbox = el('input');
     checkbox.type = 'checkbox';
     checkbox.checked = Boolean(data.documents?.[key]);
     checkbox.dataset.doc = key;
-    if (applicable) wrapper.dataset.applicable = applicable.join(' ');
     const desc = el('span', '', label);
     desc.append(el('small', '', note));
     wrapper.append(checkbox, desc);
@@ -151,9 +153,15 @@ function fill(data = {}, defaultRows = false) {
 }
 
 function setConditionalFields() {
-  form.elements.fx.parentElement.hidden = form.elements.currency.value !== 'INR';
-  for (const wrapper of form.querySelectorAll('[data-applicable]')) {
-    wrapper.hidden = !wrapper.dataset.applicable.split(' ').includes(form.elements.purpose.value);
+  form.elements.fx.parentElement.hidden = form.elements.currency.value !== 'LOCAL';
+  const documents = new Map(documentRequirements({
+    purpose: form.elements.purpose.value,
+    residenceCountry: form.elements.residenceCountry.value,
+  }).map((item) => [item.key, item]));
+  for (const box of form.querySelectorAll('[data-doc]')) {
+    const item = documents.get(box.dataset.doc);
+    box.parentElement.hidden = !item;
+    if (item) box.parentElement.querySelector('small').textContent = item.detail;
   }
 }
 
@@ -248,8 +256,8 @@ $('sample').addEventListener('click', () => {
   const now = dateDay(today());
   const day = (offset) => isoDay(now + offset);
   fill({
-    name: 'Aarav Mehta', passport: 'A1234567', passportIssue: day(-800), passportExpiry: day(1500), blank: '3',
-    city: 'Pune', state: 'Maharashtra', purpose: 'tourism', application: today(), entry: day(42), exit: day(50),
+    name: 'Alex Reyes', passport: 'A1234567', passportCountry: 'PH', passportIssue: day(-800), passportExpiry: day(1500), blank: '3',
+    city: 'Dubai', residenceCountry: 'AE', purpose: 'tourism', application: today(), entry: day(42), exit: day(50),
     firstEntry: 'France', consulate: 'Italy', history: 'none', outDate: day(42), outAirport: 'CDG',
     returnDate: day(50), returnAirport: 'FCO', coverage: '25000', currency: 'EUR', insFrom: day(42),
     insTo: day(49), wide: 'yes', employment: 'Salaried employee', funds: 'Self-funded from savings', priorVisa: 'no',

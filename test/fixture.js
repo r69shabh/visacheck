@@ -1,5 +1,5 @@
 export const trip = () => ({
-  name: 'Aarav Mehta', passport: 'A1234567', city: 'Pune', state: 'Maharashtra',
+  name: 'Alex Reyes', passport: 'A1234567', passportCountry: 'PH', city: 'Dubai', residenceCountry: 'AE',
   passportIssue: '2020-01-10', passportExpiry: '2030-01-10', blank: '3',
   entry: '2027-04-02', exit: '2027-04-08', application: '2027-03-03',
   firstEntry: 'France', consulate: 'France', purpose: 'tourism',

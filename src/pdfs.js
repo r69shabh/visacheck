@@ -1,7 +1,8 @@
 import { jsPDF } from 'jspdf';
 import { dateDay, isoDay } from './rules.js';
+import { countryName } from './countries.js';
 
-const disclaimer = 'Not legal or visa advice; not affiliated with any embassy, VFS or the EU.';
+const disclaimer = 'Not legal or visa advice; not affiliated with any embassy, visa centre or the EU.';
 const purposeLabel = { tourism: 'tourism', business: 'business', family: 'a family visit' };
 
 function latin(value) {
@@ -49,23 +50,24 @@ function writer(title) {
 
 export function coverLetter(data, review) {
   const pdf = writer('Schengen visa cover letter');
+  const passportCountry = countryName(data.passportCountry);
+  const residenceCountry = countryName(data.residenceCountry);
   pdf.line('To the Visa Officer', true);
   pdf.line(`Consular Section - ${review.consulate}`);
-  pdf.line('India');
   pdf.space();
   pdf.line(`Subject: Short-stay visa application | ${data.entry} to ${data.exit}`, true);
   pdf.space();
   pdf.line('Dear Visa Officer,');
   pdf.space();
-  pdf.line(`I am ${data.name.trim()}, holder of Indian passport ${data.passport.trim()}. I am applying for a short-stay Schengen visa for ${purposeLabel[data.purpose]}. I plan to enter on ${data.entry} and leave on ${data.exit}.`);
+  pdf.line(`I am ${data.name.trim()}, holder of passport ${data.passport.trim()}${passportCountry ? ' (issued by ' + passportCountry + ')' : ''}. I am applying for a short-stay Schengen visa for ${purposeLabel[data.purpose]}. I plan to enter on ${data.entry} and leave on ${data.exit}.`);
   pdf.space();
   pdf.line('Planned route:', true);
   review.ordered.forEach((stop) => pdf.line(`${stop.city}, ${stop.country} | ${isoDay(stop.from)} to ${isoDay(stop.to)}`));
   pdf.space();
   if (data.employment?.trim()) pdf.line(`Employment / studies: ${data.employment.trim()}`);
   if (data.funds?.trim()) pdf.line(`Trip funding: ${data.funds.trim()}`);
-  const residence = [data.city, data.state].map((item) => item?.trim()).filter(Boolean);
-  if (residence.length) pdf.line(`Current residence: ${residence.join(', ')}, India`);
+  const residence = [data.city, data.state, residenceCountry].map((item) => item?.trim()).filter(Boolean);
+  if (residence.length) pdf.line(`Current residence: ${residence.join(', ')}`);
   pdf.space();
   pdf.line('Thank you for considering my application.');
   pdf.space();

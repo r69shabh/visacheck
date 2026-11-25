@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
+import { COUNTRY_OPTIONS, countryName } from '../src/countries.js';
 import { audit, dateDay, isoDay, SCHENGEN, shiftMonths } from '../src/rules.js';
 import { trip } from './fixture.js';
 
@@ -13,6 +14,27 @@ test('valid inputs meet the core checks and have official references', () => {
   assert.ok(result.checks.every(({ source }) => source[1].startsWith('https://')));
   assert.equal(result.documents.find(({ key }) => key === 'photos').ready, true);
   assert.equal(result.documents.find(({ key }) => key === 'bank').ready, false);
+});
+
+test('passport and residence countries are separate, with worldwide options and residence-specific filing guidance', () => {
+  for (const code of ['IN', 'PH', 'ID', 'PK', 'BD', 'NG', 'EG', 'ZA', 'TR', 'CN', 'VN', 'LK', 'NP', 'KE', 'GH', 'MA', 'AE', 'SA']) {
+    assert.ok(COUNTRY_OPTIONS.some(([value]) => value === code));
+  }
+  assert.equal(countryName('PH'), 'Philippines');
+  assert.ok(COUNTRY_OPTIONS.some(([value]) => value === 'other'));
+  const data = trip();
+  assert.equal(audit(data).consulate, 'France');
+  assert.match(check(data, 'Local filing jurisdiction').reason, /Dubai, United Arab Emirates/);
+  assert.match(check({ ...data, passportCountry: '' }, 'Passport country').reason, /issuing country/);
+  assert.match(check({ ...data, residenceCountry: 'other' }, 'Local filing jurisdiction').reason, /where you legally reside/);
+});
+
+test('the India checklist hint follows legal residence, not citizenship or the default', () => {
+  const taxDetail = (data) => audit(data).documents.find(({ key }) => key === 'tax').detail;
+  const data = trip();
+  assert.doesNotMatch(taxDetail({ ...data, passportCountry: 'IN' }), /India|ITR/);
+  assert.doesNotMatch(taxDetail({ ...data, residenceCountry: '' }), /India|ITR/);
+  assert.match(taxDetail({ ...data, residenceCountry: 'IN' }), /India.*ITRs/);
 });
 
 test('passport needs document validity, age and blank pages; dates are calendar-based', () => {
@@ -90,7 +112,7 @@ test('Schengen list includes Bulgaria and Romania, not UK, Ireland or Cyprus', (
 });
 
 test('insurance checks limit, whole trip and territory independently', () => {
-  const data = { ...trip(), currency: 'INR', coverage: '2999999', fx: '100', insTo: '2027-04-07', wide: 'no' };
+  const data = { ...trip(), currency: 'LOCAL', coverage: '2999999', fx: '100', insTo: '2027-04-07', wide: 'no' };
   for (const title of ['Insurance amount', 'Insurance dates', 'Insurance territory']) {
     assert.equal(check(data, title).status, 'error');
   }

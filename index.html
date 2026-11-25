@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="en-IN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VisaCheck — Free Schengen visa file checker for India</title>
-  <meta name="description" content="Check a Schengen visa file from India for missing documents, booking gaps, insurance and the right consulate. Free checks; optional cover letter and itinerary PDFs.">
+  <title>VisaCheck — Free Schengen visa file checker</title>
+  <meta name="description" content="Check your Schengen visa file for missing documents, booking gaps, insurance and the right consulate. Free checks; optional cover letter and itinerary PDFs.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="VisaCheck — Schengen visa file checker for India">
-  <meta property="og:description" content="Catch trip and paperwork inconsistencies before you submit. Free, private checks for Indian applicants.">
+  <meta property="og:title" content="VisaCheck — Free Schengen visa file checker">
+  <meta property="og:description" content="Catch trip and paperwork inconsistencies before you submit. Free, private checks for short-stay visa applicants worldwide.">
   <meta name="theme-color" content="#153935">
   <link rel="icon" href="/visacheck.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/src/style.css">
@@ -21,7 +21,7 @@
     </nav>
     <div class="container hero">
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> MADE FOR APPLICANTS IN INDIA</p>
+        <p class="eyebrow"><span></span> FOR SHORT-STAY SCHENGEN VISAS</p>
         <h1>Check your Schengen<br> visa file <em>before you apply.</em></h1>
         <p class="hero-description">Catch booking gaps, insurance issues and missing paperwork before your appointment. The checks are free and your trip details stay in this browser.</p>
         <div class="hero-actions">
@@ -31,7 +31,7 @@
       </div>
       <div class="ticket" aria-label="What the checker looks at">
         <div class="ticket-head"><span>FLIGHT PLAN / FILE REVIEW</span><span>01—04</span></div>
-        <div class="ticket-route"><div>IND <small>ORIGIN</small></div><span aria-hidden="true">✈</span><div>EUR <small>DESTINATION</small></div></div>
+        <div class="ticket-route"><div>INTL <small>ORIGIN</small></div><span aria-hidden="true">✈</span><div>EUR <small>DESTINATION</small></div></div>
         <ul><li>Passport &amp; consulate</li><li>Travel dates &amp; hotels</li><li>Medical insurance</li><li>Document checklist</li></ul>
       </div>
     </div>
@@ -39,7 +39,7 @@
   <main class="container main" id="checker">
     <div class="intro">
       <div><p class="eyebrow">THE FREE FILE CHECK</p><h2>Put your trip together.</h2></div>
-      <p>For short-stay tourism, business and family visits. Not legal or visa advice; not affiliated with any embassy, VFS or the EU.</p>
+      <p>For applicants worldwide who need a short-stay visa for tourism, business or family visits. Not legal or visa advice; not affiliated with any embassy, visa centre or the EU.</p>
     </div>
     <div class="workspace">
       <form id="trip-form" novalidate>
@@ -64,7 +64,7 @@
           <div class="subheading"><h4>Accommodation</h4><p>Include each hotel or private host stay covering nights inside Schengen.</p></div>
           <div id="hotels"></div>
           <button class="button small" type="button" data-add="hotels">+ Add accommodation</button>
-          <div class="subheading"><h4>Travel medical insurance</h4><p>Use the coverage limit, not the premium. If using INR, enter the INR amount for €1 from the <a id="fx-source" target="_blank" rel="noopener">ECB reference table</a>; this is an estimate.</p></div>
+          <div class="subheading"><h4>Travel medical insurance</h4><p>Use the coverage limit, not the premium. For another currency, enter how many units of that currency equal €1. Use the <a id="fx-source" target="_blank" rel="noopener">ECB reference table</a> where available, or ask your insurer for the equivalent in euros.</p></div>
           <div id="insurance-fields" class="fields"></div>
         </section>
         <section class="card">
@@ -82,13 +82,13 @@
         <section class="card review" id="review" tabindex="-1">
           <p class="eyebrow">FILE REVIEW</p>
           <h3>Your results</h3>
-          <p class="fine">Not legal or visa advice; not affiliated with any embassy, VFS or the EU.</p>
+          <p class="fine">Not legal or visa advice; not affiliated with any embassy, visa centre or the EU.</p>
           <div id="review-body">
             <p class="waiting"><strong>Ready when you are.</strong><br>Add your trip details and choose “Check my visa file” to see what needs attention.</p>
           </div>
         </section>
         <section class="card upgrade">
-          <div class="upgrade-label"><p class="eyebrow">OPTIONAL PDF PACK</p><strong>₹499</strong></div>
+          <div class="upgrade-label"><p class="eyebrow">OPTIONAL PDF PACK</p><strong>$9</strong></div>
           <h3>Cover letter &amp;<br> day-by-day itinerary.</h3>
           <p>Turn your details into two downloadable PDFs. Review, sign where needed, and keep a copy for your appointment.</p>
           <div class="letter" aria-label="Free cover letter preview">
@@ -118,7 +118,7 @@
   <footer>
     <div class="container footer">
       <strong>VisaCheck</strong>
-      <p>Not legal or visa advice; not affiliated with any embassy, VFS or the EU.<br>Trip data is saved only in this browser. Checkout and license verification are handled by Gumroad.</p>
+      <p>Not legal or visa advice; not affiliated with any embassy, visa centre or the EU.<br>Trip data is saved only in this browser. Checkout and license verification are handled by Gumroad.</p>
       <a href="./terms.html">Terms &amp; privacy</a>
     </div>
   </footer>
