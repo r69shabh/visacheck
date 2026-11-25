@@ -13,7 +13,11 @@ npm test
 npm run build
 ```
 
-`npm run preview` serves the built site. Netlify builds with `npm run build` and publishes `dist/` from the connected branch.
+`npm run preview` serves the built site locally.
+
+## Deploy to Cloudflare Pages
+
+Connect the GitHub repository and set the production branch to `main`, the build command to `npm run build`, and the build output directory to `dist`. Pages reads Node 22 from `.node-version` and applies the security headers copied from `public/_headers`. No redirects are required. The existing `netlify.toml` remains available for Netlify deployments.
 
 ## Files and launch
 
