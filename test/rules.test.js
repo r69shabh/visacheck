@@ -55,6 +55,15 @@ test('standard filing window is six calendar months and 15 days, not a fixed 180
   assert.equal(check({ ...trip(), application: '2027-04-03' }, 'Application timing').status, 'error');
 });
 
+test('passport must have been issued by the filing date, which defaults to today', () => {
+  const data = { ...trip(), passportIssue: '2027-03-04' };
+  const review = audit(data);
+  assert.equal(review.checks.find(({ title }) => title === 'Passport issue date').status, 'error');
+  assert.ok(!review.checks.some(({ title, status }) => title === 'Passport eligibility' && status === 'ok'));
+  assert.equal(check({ ...data, application: '2027-03-04' }, 'Passport eligibility').status, 'ok');
+  assert.equal(audit({ ...data, application: '' }, '2027-03-03').checks.find(({ title }) => title === 'Passport issue date').status, 'error');
+});
+
 test('consulate uses main purpose, then duration, then first external entry for unresolved ties', () => {
   const data = trip();
   assert.equal(check({ ...data, consulate: 'Italy' }, 'Destination consulate').status, 'error');
@@ -72,6 +81,28 @@ test('same-day visit to a sole destination uses that country and requires no ove
   };
   assert.equal(audit(data).consulate, 'France');
   assert.equal(check(data, 'Accommodation dates').status, 'ok');
+});
+
+test('consulate counts distinct days of presence, including departure and same-day visits', () => {
+  const data = {
+    ...trip(), entry: '2027-05-01', exit: '2027-05-12', firstEntry: 'Italy',
+    segments: [
+      { country: 'Italy', city: 'Rome', from: '2027-05-01', to: '2027-05-03', nights: '2' },
+      { country: 'Italy', city: 'Milan', from: '2027-05-03', to: '2027-05-06', nights: '3' },
+      { country: 'France', city: 'Paris', from: '2027-05-06', to: '2027-05-08', nights: '2' },
+      { country: 'Switzerland', city: 'Geneva', from: '2027-05-08', to: '2027-05-09', nights: '1' },
+      { country: 'France', city: 'Lyon', from: '2027-05-09', to: '2027-05-12', nights: '3' },
+      { country: 'Spain', city: 'Barcelona', from: '2027-05-12', to: '2027-05-12', nights: '0' },
+    ],
+  };
+  assert.equal(audit(data).consulate, 'France');
+  assert.match(check(data, 'Destination consulate').reason, /7 days/);
+  const sameDay = {
+    ...data, entry: data.exit, firstEntry: 'Spain',
+    segments: [data.segments.at(-1), { country: 'France', city: 'Lyon', from: data.exit, to: data.exit, nights: '0' }],
+  };
+  assert.equal(audit(sameDay).consulate, 'Spain');
+  assert.equal(audit({ ...sameDay, firstEntry: '' }).consulate, '');
 });
 
 test('rolling stay limit counts entry and exit and deduplicates prior dates', () => {

@@ -47,3 +47,37 @@ test('PDFs include calculated consulate, individual trip days, and the disclaime
   assert.match(itinerary, /Schengen departure from FCO/);
   for (const pdf of [cover, itinerary]) assert.match(pdf, /Not legal or visa advice/);
 });
+
+test('both PDFs embed non-ASCII Latin letters from the passport name', () => {
+  const data = { ...trip(), name: 'Łukasz Østergård' };
+  const review = audit(data);
+  for (const pdf of [coverLetter(data, review), itineraryPdf(data, review)]) {
+    const text = pdfText(pdf);
+    const glyphs = new Map([...text.matchAll(/<([a-f0-9]{4})><([a-f0-9]{4})>/g)]
+      .map(([, glyph, unicode]) => [String.fromCharCode(parseInt(unicode, 16)), glyph]));
+    assert.ok([...data.name].every((letter) => glyphs.has(letter)));
+    const name = [...data.name].map((letter) => glyphs.get(letter)).join('');
+    assert.ok([...text.matchAll(/<([a-f0-9]+)> Tj/g)].some(([, run]) => run.includes(name)));
+  }
+  for (const generate of [coverLetter, itineraryPdf]) {
+    assert.throws(() => generate({ ...data, name: 'Alex 🙂' }, review), { name: 'UnsupportedPdfTextError' });
+  }
+});
+
+test('itinerary records each transfer on the departure day and on same-day trips', () => {
+  const data = trip();
+  const stops = [
+    { country: 'Italy', city: 'Milan', from: data.exit, to: data.exit, nights: '0' },
+    { country: 'Switzerland', city: 'Geneva', from: data.exit, to: data.exit, nights: '0' },
+  ];
+  data.segments.push(...stops);
+  const output = pdfText(itineraryPdf(data, audit(data)));
+  assert.match(output, /Onward travel from Rome, Italy to Milan, Italy[\s\S]*Onward travel from Milan, Italy to Geneva, Switzerland[\s\S]*Schengen departure/);
+  const sameDay = { ...data, entry: data.exit, segments: stops, firstEntry: 'Italy' };
+  const sameDayOutput = pdfText(itineraryPdf(sameDay, audit(sameDay)));
+  assert.match(sameDayOutput, /Schengen arrival[\s\S]*Onward travel from Milan, Italy to Geneva, Switzerland[\s\S]*Schengen departure/);
+  for (const text of [output, sameDayOutput]) {
+    assert.equal(text.match(/Schengen arrival/g)?.length, 1);
+    assert.equal(text.match(/Schengen departure/g)?.length, 1);
+  }
+});
