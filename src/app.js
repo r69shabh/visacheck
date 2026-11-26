@@ -2,6 +2,7 @@ import { audit, dateDay, DOCUMENTS, documentRequirements, isoDay, SCHENGEN, SOUR
 import { COUNTRY_OPTIONS } from './countries.js';
 import { GUMROAD_PRODUCT_ID, GUMROAD_PRODUCT_URL } from './config.js';
 import { verifyLicense } from './payment.js';
+import { hasTripEntries } from './draft.js';
 
 const $ = (id) => document.getElementById(id);
 const form = $('trip-form');
@@ -252,7 +253,8 @@ form.querySelectorAll('[data-add]').forEach((button) => button.addEventListener(
 }));
 
 $('sample').addEventListener('click', () => {
-  if (Object.keys(loadDraft()).length && !window.confirm('Replace the current trip draft with the sample trip?')) return;
+  if ((hasTripEntries(getData()) || [...form.elements].some((field) => field.validity?.badInput)) &&
+    !window.confirm('Replace the current trip draft with the sample trip?')) return;
   const now = dateDay(today());
   const day = (offset) => isoDay(now + offset);
   fill({
@@ -357,8 +359,10 @@ async function downloadPdf(kind) {
     if (kind === 'cover') coverLetter(data, review).save('schengen-cover-letter.pdf');
     else itineraryPdf(data, review).save('schengen-itinerary.pdf');
     $('payment-status').textContent = 'PDF generated. Review it for accuracy before using it.';
-  } catch {
-    $('payment-status').textContent = 'Could not generate the PDF. Please try again.';
+  } catch (error) {
+    $('payment-status').textContent = error?.name === 'UnsupportedPdfTextError'
+      ? error.message
+      : 'Could not generate the PDF. Please try again.';
   }
 }
 

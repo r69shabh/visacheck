@@ -1,17 +1,18 @@
 import { jsPDF } from 'jspdf';
 import { dateDay, isoDay } from './rules.js';
 import { countryName } from './countries.js';
+import { pdfFonts } from './pdf-fonts.js';
 
 const disclaimer = 'Not legal or visa advice; not affiliated with any embassy, visa centre or the EU.';
 const purposeLabel = { tourism: 'tourism', business: 'business', family: 'a family visit' };
 
-function latin(value) {
-  return String(value ?? '').trim().normalize('NFKD').replace(/\p{Mark}/gu, '')
-    .replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^\x20-\x7e]/gu, '?');
+class UnsupportedPdfTextError extends Error {
+  name = 'UnsupportedPdfTextError';
 }
 
 function writer(title) {
-  const doc = new jsPDF({ compress: true });
+  const doc = new jsPDF({ compress: true, putOnlyUsedFonts: true });
+  const registeredStyles = new Set();
   let y;
   const header = () => {
     doc.setFillColor(21, 57, 53);
@@ -23,13 +24,26 @@ function writer(title) {
   };
   header();
   return {
-    line(text, bold = false) {
-      doc.setFont('helvetica', bold ? 'bold' : 'normal').setFontSize(11);
-      for (const line of doc.splitTextToSize(latin(text), 174)) {
+    line(value, bold = false) {
+      const text = value.trim().normalize('NFC');
+      const style = bold ? 'bold' : 'normal';
+      const family = /[^\x20-\x7e]/.test(text) ? 'DejaVuSans' : 'helvetica';
+      if (family === 'DejaVuSans' && !registeredStyles.has(style)) {
+        const filename = `DejaVuSans-${style}.ttf`;
+        doc.addFileToVFS(filename, pdfFonts[style]);
+        doc.addFont(filename, family, style);
+        registeredStyles.add(style);
+      }
+      doc.setFont(family, style).setFontSize(11);
+      if (family === 'DejaVuSans' && [...text].some((character) =>
+        character.length !== 1 || !doc.getFont().metadata.characterToGlyph(character.charCodeAt(0)))) {
+        throw new UnsupportedPdfTextError('Some characters cannot be printed in the PDF. Use the Latin spelling from your passport for names and places, then try again.');
+      }
+      for (const line of doc.splitTextToSize(text, 174)) {
         if (y > 268) {
           doc.addPage();
           header();
-          doc.setFont('helvetica', bold ? 'bold' : 'normal').setFontSize(11);
+          doc.setFont(family, style).setFontSize(11);
         }
         doc.text(line, 18, y);
         y += 5.5;
@@ -88,12 +102,17 @@ export function itineraryPdf(data, review) {
     city: row.city.trim(), from: dateDay(row.from), to: dateDay(row.to),
   })).filter((row) => row.from !== null && row.to !== null && row.from < row.to);
   for (let day = start; day <= end; day += 1) {
-    const stop = day === end ? review.ordered.at(-1) : review.ordered.find((row) => day >= row.from && day < row.to);
-    const old = day > start ? review.ordered.find((row) => day - 1 >= row.from && day - 1 < row.to) : null;
-    const changesCity = old && (old.city !== stop.city || old.country !== stop.country);
+    const route = review.ordered.filter((row) => day >= row.from && day <= row.to);
+    const stop = route.at(-1);
     pdf.line(`Day ${day - start + 1} | ${isoDay(day)} | ${stop.city}, ${stop.country}`, true);
     if (day === start) pdf.line('Schengen arrival' + (data.outAirport?.trim() ? ' at ' + data.outAirport.trim() : ''));
-    if (changesCity) pdf.line(`Onward travel from ${old.city} to ${stop.city}`);
+    for (let i = 1; i < route.length; i += 1) {
+      const from = route[i - 1];
+      const to = route[i];
+      if (from.city !== to.city || from.country !== to.country) {
+        pdf.line(`Onward travel from ${from.city}, ${from.country} to ${to.city}, ${to.country}`);
+      }
+    }
     if (day === end) pdf.line('Schengen departure' + (data.returnAirport?.trim() ? ' from ' + data.returnAirport.trim() : ''));
     else {
       const cities = [...new Set(hotelDates.filter((row) => day >= row.from && day < row.to).map((row) => row.city))];

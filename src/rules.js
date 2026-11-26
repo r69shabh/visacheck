@@ -64,28 +64,26 @@ export function shiftMonths(day, amount) {
 }
 
 export function destination(segments, mainPurpose, firstEntry) {
-  const countries = new Set(segments.map((row) => row.country));
-  const totals = new Map();
-  for (const row of segments) {
-    if (!row.nights) continue;
-    totals.set(row.country, (totals.get(row.country) ?? 0) + row.nights);
-  }
   if (mainPurpose) {
     if (!SCHENGEN.includes(mainPurpose) || !segments.some((row) => row.country === mainPurpose)) {
       return { problem: 'The main-purpose country must be a Schengen destination listed in the itinerary.' };
     }
     return { country: mainPurpose, reason: 'This country is the main destination by purpose.' };
   }
-  if (countries.size === 1) {
-    return { country: countries.values().next().value, reason: 'It is the sole destination in your itinerary.' };
+  const stays = new Map();
+  for (const { country, from, to } of segments) {
+    const stay = stays.get(country) ?? { days: 0, through: from - 1 };
+    stay.days += to - Math.max(from, stay.through + 1) + 1;
+    stay.through = to;
+    stays.set(country, stay);
   }
-  if (totals.size === 0 && firstEntry) {
-    return { country: firstEntry, reason: 'For this same-day itinerary, this is the first external Schengen entry.' };
+  if (stays.size === 1) {
+    return { country: stays.keys().next().value, reason: 'It is the sole destination in your itinerary.' };
   }
-  const longest = Math.max(...totals.values());
-  const leaders = [...totals].filter(([, nights]) => nights === longest);
+  const longest = Math.max(...[...stays.values()].map(({ days }) => days));
+  const leaders = [...stays].filter(([, { days }]) => days === longest);
   if (leaders.length === 1) {
-    return { country: leaders[0][0], reason: `This is the longest destination by stay (${longest} ${longest === 1 ? 'night' : 'nights'}).` };
+    return { country: leaders[0][0], reason: `This country has the longest stay (${longest} days).` };
   }
   if (!firstEntry) return { problem: 'Enter your first external Schengen border crossing to resolve the tie.' };
   return { country: firstEntry, reason: 'No single main destination is indicated. When no main destination can be determined, apply to the country of first external Schengen entry.' };
@@ -136,9 +134,10 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
     passportError = true;
     add('error', 'Passport expiry', `Your passport should be valid through at least ${isoDay(shiftMonths(end, 3))} (three calendar months after exit).`, psource);
   }
-  if (issue !== null && (validTrip && (issue <= shiftMonths(start, -120) || issue > start) || expiry !== null && issue >= expiry)) {
+  if (issue !== null && (application !== null && issue > application ||
+    validTrip && (issue <= shiftMonths(start, -120) || issue > start) || expiry !== null && issue >= expiry)) {
     passportError = true;
-    add('error', 'Passport issue date', 'The passport must already have been issued, be less than 10 years old on entry, and expire after its issue date.', psource);
+    add('error', 'Passport issue date', 'The passport must be issued by the filing date, be less than 10 years old on entry, and expire after its issue date.', psource);
   }
   if (Number.isInteger(blank) && blank >= 0 && blank < 2) {
     passportError = true;
@@ -186,7 +185,7 @@ export function audit(data, now = new Date().toISOString().slice(0, 10)) {
     const result = destination(ordered, mainPurpose, firstEntry);
     if (result.problem) add('warning', 'Destination consulate', result.problem, code(5));
     else if (!mainPurpose && new Set(ordered.map((row) => row.country)).size > 1 && ['business', 'family'].includes(data.purpose)) {
-      add('warning', 'Destination consulate', 'If business or visiting family is the main reason for the trip, identify where that activity takes place; purpose can take priority over nights.', code(5));
+      add('warning', 'Destination consulate', 'If business or visiting family is the main reason for the trip, identify where that activity takes place; purpose can take priority over length of stay.', code(5));
     } else {
       consulate = result.country;
       if (data.consulate && data.consulate !== consulate) add('error', 'Destination consulate', `Apply to ${consulate}, not ${data.consulate}. ${result.reason}`, code(5));
