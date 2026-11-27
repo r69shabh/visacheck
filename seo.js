@@ -33,6 +33,36 @@ export const pages = {
     title: 'ETIAS vs EES: What Schengen Travelers Need to Know | VisaCheck',
     description: 'Learn how the EU Entry/Exit System differs from ETIAS, who each applies to, and where to check the official rollout before traveling.',
   },
+  'which-schengen-consulate.html': {
+    label: 'Which Schengen consulate?',
+    headline: 'Which Schengen consulate should I apply to?',
+    description: 'Find which country handles a multi-country Schengen visa application. Compare trip purpose, longest stay and the first-entry fallback with worked examples.',
+  },
+  'schengen-visa-travel-insurance.html': {
+    label: 'Schengen visa travel insurance',
+    headline: 'Schengen visa travel insurance: the €30,000 rule',
+    description: 'Check the €30,000 Schengen travel medical insurance rule, required benefits, coverage through departure day and evidence for a multiple-entry visa.',
+  },
+  'schengen-visa-refusal-reasons.html': {
+    label: 'Schengen visa refusal reasons',
+    headline: 'Schengen visa refusal reasons: what the notice means',
+    description: 'Understand common Schengen visa refusal reasons, from insufficient funds to doubts about return, and decide what to check before appealing or reapplying.',
+  },
+  'france-schengen-visa-checklist-uae.html': {
+    label: 'France visa checklist from the UAE',
+    headline: 'France Schengen visa document checklist from the UAE',
+    description: 'Prepare a France tourist visa file from the UAE and find the official France-Visas checklist for your residence, passport, bookings, insurance and finances.',
+  },
+  'italy-schengen-visa-checklist-saudi-arabia.html': {
+    label: 'Italy visa checklist from Saudi Arabia',
+    headline: 'Italy Schengen visa document checklist from Saudi Arabia',
+    description: 'Prepare an Italy tourist visa file from Saudi Arabia, check your residence and trip documents, and find the Italian embassy’s current application centre.',
+  },
+  'spain-schengen-visa-checklist-philippines.html': {
+    label: 'Spain visa checklist from the Philippines',
+    headline: 'Spain Schengen visa document checklist from the Philippines',
+    description: 'Prepare a Spain tourist visa file from the Philippines with the Manila consulate’s guidance on passport copies, residence, finances and medical insurance.',
+  },
 };
 
 const guides = Object.entries(pages).filter(([, page]) => page.label);
@@ -77,6 +107,16 @@ function structuredData(file, page, url, home) {
       })),
     });
   }
+  if (page.headline) {
+    data.push({
+      ...context,
+      '@type': 'Article',
+      headline: page.headline,
+      description: page.description,
+      mainEntityOfPage: url,
+      publisher: { '@type': 'Organization', name: 'VisaCheck', url: home },
+    });
+  }
   return data;
 }
 
@@ -95,7 +135,7 @@ export function seo(env) {
         const file = filename.split(/[/\\]/).pop();
         const page = pages[file];
         if (!page) return html;
-        const { title, description } = page;
+        const { title = `${page.headline} | VisaCheck`, description } = page;
         const url = site.origin + pathFor(file);
         const head = [
           `<title>${escapeHtml(title)}</title>`,

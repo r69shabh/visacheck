@@ -4,11 +4,20 @@ import { build } from 'vite';
 import { seo } from '../seo.js';
 
 const origin = 'https://visacheck-isxx.onrender.com';
+const applicationGuides = new Map([
+  ['/which-schengen-consulate.html', '#art_5'],
+  ['/schengen-visa-travel-insurance.html', '#art_15'],
+  ['/schengen-visa-refusal-reasons.html', '#art_32'],
+  ['/france-schengen-visa-checklist-uae.html', 'https://ae.diplomatie.gouv.fr/fr/demander-un-visa'],
+  ['/italy-schengen-visa-checklist-saudi-arabia.html', 'https://ambriad.esteri.it/'],
+  ['/spain-schengen-visa-checklist-philippines.html', 'https://www.exteriores.gob.es/Consulados/manila/'],
+]);
 const guides = [
   '/schengen-90-180-rule.html',
   '/schengen-days-calculator.html',
   '/schengen-countries.html',
   '/etias-ees.html',
+  ...applicationGuides.keys(),
 ];
 
 async function builtAssets() {
@@ -54,6 +63,14 @@ test('production SEO is present in static pages and discovery files', async () =
     const breadcrumb = schema.get(path)[0];
     assert.equal(breadcrumb['@type'], 'BreadcrumbList');
     assert.deepEqual(breadcrumb.itemListElement.map(({ item }) => item), [origin + '/', origin + path]);
+  }
+  for (const [path, officialSource] of applicationGuides) {
+    const html = assets.get(path.slice(1));
+    const article = schema.get(path).find((item) => item['@type'] === 'Article');
+    assert.equal(article.mainEntityOfPage, origin + path);
+    assert.ok(html.includes(`<h1>${article.headline}</h1>`), path);
+    assert.ok(html.match(/<article>.*?<\/article>/s)[0].includes('href="/#checker"'), path);
+    assert.ok([...html.matchAll(/href="(https:\/\/[^"]+)"/g)].some(([, url]) => url.includes(officialSource)), path);
   }
 });
 
