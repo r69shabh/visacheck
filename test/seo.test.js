@@ -49,7 +49,8 @@ test('production SEO is present in static pages and discovery files', async () =
   assert.deepEqual([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url).sort(), paths.map((path) => origin + path).sort());
   assert.equal(assets.get('robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${origin}/sitemap.xml\n`);
   const home = assets.get('index.html');
-  assert.doesNotMatch(home, /google-site-verification|msvalidate\.01/);
+  assert.match(home, /<meta name="google-site-verification" content="8Q3QxXlymQ4h8C3S2o2EO7F8Hnjf4DkSuSfCsc3QPFs">/);
+  assert.doesNotMatch(home, /msvalidate\.01/);
   assert.equal(schema.get('/')[0]['@type'], 'WebApplication');
   const faq = schema.get(guides[0]).find((item) => item['@type'] === 'FAQPage');
   for (const question of faq.mainEntity) {

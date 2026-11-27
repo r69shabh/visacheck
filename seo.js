@@ -151,7 +151,8 @@ export function seo(env) {
           meta('name', 'twitter:description', description),
         ];
         if (file === 'index.html') {
-          if (env.GOOGLE_SITE_VERIFICATION?.trim()) head.push(meta('name', 'google-site-verification', env.GOOGLE_SITE_VERIFICATION.trim()));
+          const googleVerification = env.GOOGLE_SITE_VERIFICATION?.trim() || '8Q3QxXlymQ4h8C3S2o2EO7F8Hnjf4DkSuSfCsc3QPFs';
+          head.push(meta('name', 'google-site-verification', googleVerification));
           if (env.BING_SITE_VERIFICATION?.trim()) head.push(meta('name', 'msvalidate.01', env.BING_SITE_VERIFICATION.trim()));
         }
         for (const data of structuredData(file, page, url, site.href)) {
